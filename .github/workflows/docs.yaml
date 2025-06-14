@@ -15,6 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 
+name: Deploy DataFusion Ballista site
+
+concurrency:
+  group: ${{ github.repository }}-${{ github.head_ref || github.sha }}-${{ github.workflow }}
+  cancel-in-progress: true
+
 on:
   push:
     branches:
@@ -24,7 +30,6 @@ on:
       - .github/workflows/docs.yaml
       - docs/**
 
-name: Deploy DataFusion Ballista site
 
 jobs:
   build-docs:
