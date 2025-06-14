@@ -34,7 +34,7 @@ jobs:
         with:
           python-version: "3.10"
       - name: Setup Archery
-        run: pip install dev/archery[lint]
+        run: pip install archery[lint]
       - name: Lint
         run: archery -h
 
