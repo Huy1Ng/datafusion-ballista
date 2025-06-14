@@ -35,9 +35,9 @@ jobs:
         with:
           python-version: "3.10"
       - name: Setup Archery
-        run: pip install -e "dev/archery[all]"
+        run: pip install -e "dev/archery[lint]"
       - name: Lint
-        run: archery -h
+        run: archery lint --rat
 
   rat:
     name: Release Audit Tool (RAT)
