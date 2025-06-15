@@ -26,6 +26,10 @@ on:
 
 name: Deploy DataFusion Ballista site
 
+concurrency:
+  group: ${{ github.repository }}-${{ github.head_ref || github.sha }}-${{ github.workflow }}
+  cancel-in-progress: true
+
 jobs:
   build-docs:
     name: Build docs
