@@ -198,6 +198,8 @@ jobs:
           submodules: true
       - name: Setup Rust toolchain
         uses: ./.github/actions/setup-windows-builder
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
       - name: Run tests
         shell: bash
         run: |
