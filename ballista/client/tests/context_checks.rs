@@ -147,11 +147,9 @@ mod supported {
         .unwrap();
         let write_dir = tempfile::tempdir().expect("temporary directory to be created");
         let write_dir_path = write_dir
-            .path().canonicalize().expect("msg")
+            .path()
             .to_str()
-            .expect("path to be converted to str").to_string();
-
-        assert_eq!(write_dir_path, "a");
+            .expect("path to be converted to str");
 
         ctx.sql(&format!("CREATE EXTERNAL TABLE written_table (id INTEGER, string_col STRING, timestamp_col BIGINT) STORED AS PARQUET LOCATION '{}'" , write_dir_path)).await.unwrap().show().await.unwrap();
 
