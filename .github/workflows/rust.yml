@@ -208,6 +208,7 @@ jobs:
           export PARQUET_TEST_DATA=$(pwd)/parquet-testing/data
           export TEMP=$(pwd)/tempdir
           export TMP=$(pwd)/tempdir
+          mkdir -p "$TMP"
           cargo test
         env:
           # do not produce debug symbols to keep memory usage down
@@ -238,6 +239,8 @@ jobs:
           rustup toolchain install stable
           rustup default stable
           rustup component add rustfmt
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
       - name: Run tests
         shell: bash
         run: |
