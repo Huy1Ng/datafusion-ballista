@@ -53,7 +53,7 @@ jobs:
 
   # test the crate
   linux-test:
-    name: test on ${{ runner.os }}-${{ runner.arch }}-rust-stable
+    name: test on ubuntu-latest-amd64-rust-stable
     needs: [build-cache]
     runs-on: ubuntu-latest
     container:
