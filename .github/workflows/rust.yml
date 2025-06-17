@@ -54,7 +54,7 @@ jobs:
   # test the crate
   linux-test:
     name: test on ubuntu-latest-amd64-rust-stable
-    needs: [build-cache]
+    needs: [update-cache]
     runs-on: ubuntu-latest
     container:
       image: amd64/rust
@@ -96,7 +96,7 @@ jobs:
   # run ballista tests
   ballista-test:
     name: Test Ballista on AMD64 Rust ${{ matrix.rust }}
-    needs: [linux-build-lib]
+    needs: [update-cache]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -153,6 +153,7 @@ jobs:
 
   windows-and-macos:
     name: Test on ${{ matrix.os }} Rust ${{ matrix.rust }}
+    needs: [update-cache]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
