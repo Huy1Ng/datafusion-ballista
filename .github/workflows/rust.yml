@@ -47,6 +47,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           save-if: "true"
+          shared-key: "main"
       - name: Compile dependencies
         run: |
           cargo check
@@ -74,6 +75,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           save-if: "false"
+          shared-key: "main"
       - name: Run tests
         run: |
           export PATH=$PATH:$HOME/d/protoc/bin
