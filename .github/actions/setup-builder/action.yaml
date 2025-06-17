@@ -38,8 +38,21 @@ runs:
         rustup toolchain install ${{ inputs.rust-version }}
         rustup default ${{ inputs.rust-version }}
         rustup component add rustfmt
-    - name: Configure rust runtime env
-      uses: ./.github/actions/setup-rust-runtime
+    - name: Configure runtime env
+      shell: bash
+      # do not produce debug symbols to keep memory usage down
+      # hardcoding other profile params to avoid profile override values
+      # More on Cargo profiles https://doc.rust-lang.org/cargo/reference/profiles.html?profile-settings#profile-settings
+      # 
+      # Set debuginfo=line-tables-only as debuginfo=0 causes immensely slow build
+      # See for more details: https://github.com/rust-lang/rust/issues/119560
+      #
+      # readd the following to the run below once sccache-cache is re-enabled
+      # echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+      # echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
+      run: |
+        echo "RUST_BACKTRACE=1" >> $GITHUB_ENV
+        echo "RUSTFLAGS=-C debuginfo=line-tables-only -C incremental=false" >> $GITHUB_ENV
     - name: Fixup git permissions
       # https://github.com/actions/checkout/issues/766
       shell: bash
