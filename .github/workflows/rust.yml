@@ -65,6 +65,7 @@ jobs:
           save-if: "true"
           shared-key: "main"
       - name: Test 
+        shell: bash
         run: |
           cargo check
           cargo test
