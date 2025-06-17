@@ -29,7 +29,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
         arch: [amd64]
     container:
       image: ${{ matrix.arch }}/rust
@@ -39,176 +39,32 @@ jobs:
         RUSTFLAGS: "-C debuginfo=1"
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Rust toolchain
-        uses: ./.github/actions/setup-builder
+      - name: Cache Rust toolchain
+        id: cache-rustup
+        uses: actions/cache@v4
+        if: ${{ matrix.os != 'windows' }}
         with:
-          rust-version: stable
+          path: ~/.rustup
+          key: toolchain-${{ matrix.os }}-${{ matrix.arch }}-${{ hashFiles('rust-toolchain.toml') }}
+      - name: Install Rust toolchain
+        if: ${{ steps.cache-rustup.outputs.cache-hit != 'true' }}
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache: false
+      - name: Set channel in rust-toolchain.toml as default
+        shell: bash
+        run: |
+          rustup default $(grep -m1 '^channel' rust-toolchain.toml | cut -d'"' -f2)
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ inputs.github-token }}
       - name: Set up cache
         uses: Swatinem/rust-cache@v2
         with:
           save-if: "true"
           shared-key: "main"
-      - name: Compile dependencies
+      - name: Test 
         run: |
           cargo check
-
-  # test the crate
-  linux-test:
-    name: test on ubuntu-latest-amd64-rust-stable
-    needs: [update-cache]
-    runs-on: ubuntu-latest
-    container:
-      image: amd64/rust
-      env:
-        # Disable full debug symbol generation to speed up CI build and keep memory down
-        # "1" means line tables only, which is useful for panic tracebacks.
-        RUSTFLAGS: "-C debuginfo=1"
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: true
-      - name: Setup Rust toolchain
-        uses: ./.github/actions/setup-builder
-        with:
-          rust-version: ${{ matrix.rust }}
-      - name: Set up cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          save-if: "false"
-          shared-key: "main"
-      - name: Run tests
-        run: |
-          export PATH=$PATH:$HOME/d/protoc/bin
-          export ARROW_TEST_DATA=$(pwd)/testing/data
-          export PARQUET_TEST_DATA=$(pwd)/parquet-testing/data
-          cargo test --features=testcontainers
-        env:
-          CARGO_HOME: "/github/home/.cargo"
-          CARGO_TARGET_DIR: "/github/home/target"
-      - name: Try to compile when `--no-default-features` is selected
-        run: |
-          export PATH=$PATH:$HOME/d/protoc/bin
-          export ARROW_TEST_DATA=$(pwd)/testing/data
-          export PARQUET_TEST_DATA=$(pwd)/parquet-testing/data
-          cargo build -p ballista-scheduler -p ballista-executor -p ballista-core -p ballista --no-default-features
-        env:
-          CARGO_HOME: "/github/home/.cargo"
-          CARGO_TARGET_DIR: "/github/home/target"
-
-  # run ballista tests
-  ballista-test:
-    name: Test Ballista on AMD64 Rust ${{ matrix.rust }}
-    needs: [update-cache]
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        arch: [amd64]
-        rust: [stable]
-    container:
-      image: ${{ matrix.arch }}/rust
-      env:
-        # Disable full debug symbol generation to speed up CI build and keep memory down
-        # "1" means line tables only, which is useful for panic tracebacks.
-        RUSTFLAGS: "-C debuginfo=1"
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: true
-      - name: Install protobuf compiler
-        shell: bash
-        run: |
-          mkdir -p $HOME/d/protoc
-          cd $HOME/d/protoc
-          export PROTO_ZIP="protoc-21.4-linux-x86_64.zip"
-          curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v21.4/$PROTO_ZIP
-          unzip $PROTO_ZIP
-          export PATH=$PATH:$HOME/d/protoc/bin
-          protoc --version
-      - name: Cache Cargo
-        uses: actions/cache@v4
-        with:
-          path: /github/home/.cargo
-          # this key equals the ones on `linux-build-lib` for re-use
-          key: cargo-cache-
-      - name: Cache Rust dependencies
-        uses: actions/cache@v4
-        with:
-          path: /github/home/target
-          # this key equals the ones on `linux-build-lib` for re-use
-          key: ${{ runner.os }}-${{ matrix.arch }}-target-cache-${{ matrix.rust }}
-      - name: Setup Rust toolchain
-        uses: ./.github/actions/setup-builder
-        with:
-          rust-version: ${{ matrix.rust }}
-      # Ballista is currently not part of the main workspace so requires a separate test step
-      - name: Run Ballista tests
-        run: |
-          export PATH=$PATH:$HOME/d/protoc/bin
-          export ARROW_TEST_DATA=$(pwd)/testing/data
-          export PARQUET_TEST_DATA=$(pwd)/parquet-testing/data
-          cd ballista
-          # Ensure also compiles in standalone mode
-          cargo test --no-default-features --features standalone
-        env:
-          CARGO_HOME: "/github/home/.cargo"
-          CARGO_TARGET_DIR: "/github/home/target"
-
-  windows-and-macos:
-    name: Test on ${{ matrix.os }} Rust ${{ matrix.rust }}
-    needs: [update-cache]
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [windows-latest, macos-latest]
-        rust: [stable]
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: true
-      - name: Install protobuf macos compiler
-        shell: bash
-        run: |
-          mkdir -p $HOME/d/protoc
-          cd $HOME/d/protoc
-          export PROTO_ZIP="protoc-21.4-osx-x86_64.zip"
-          curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v21.4/$PROTO_ZIP
-          unzip $PROTO_ZIP
-          echo "$HOME/d/protoc/bin" >> $GITHUB_PATH
-          export PATH=$PATH:$HOME/d/protoc/bin
-          protoc --version
-        if: ${{matrix.os == 'macos-latest'}}
-      - name: Install protobuf windows compiler
-        shell: bash
-        run: |
-          mkdir -p $HOME/d/protoc
-          cd $HOME/d/protoc
-          export PROTO_ZIP="protoc-21.4-win64.zip"
-          curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v21.4/$PROTO_ZIP
-          unzip $PROTO_ZIP
-          export PATH=$PATH:$HOME/d/protoc/bin
-          protoc.exe --version
-        if: ${{matrix.os == 'windows-latest'}}
-      # TODO: this won't cache anything, which is expensive. Setup this action
-      # with a OS-dependent path.
-      - name: Setup Rust toolchain
-        run: |
-          rustup toolchain install ${{ matrix.rust }}
-          rustup default ${{ matrix.rust }}
-          rustup component add rustfmt
-      - name: Set up cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          save-if: "false"
-          shared-key: "main"
-      - name: Run tests
-        shell: bash
-        run: |
-          export PATH=$PATH:$HOME/d/protoc/bin
-          export ARROW_TEST_DATA=$(pwd)/testing/data
-          export PARQUET_TEST_DATA=$(pwd)/parquet-testing/data
-          export TMP=$(pwd)/.temp
-          mkdir -p "$TMP"
           cargo test
-        env:
-          # do not produce debug symbols to keep memory usage down
-          RUSTFLAGS: "-C debuginfo=0"
