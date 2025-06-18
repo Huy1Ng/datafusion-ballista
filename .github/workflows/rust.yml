@@ -119,6 +119,10 @@ jobs:
       - name: Test 
         shell: bash
         run: |
+          cargo test
+      - name: Build 
+        shell: bash
+        run: |
           cargo build
 
   test-linux:
