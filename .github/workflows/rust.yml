@@ -161,7 +161,7 @@ jobs:
           export PARQUET_TEST_DATA=$(pwd)/parquet-testing/data
           cargo test --features=testcontainers
 
-  test-linux-workspace:
+  test-linux-balista:
     runs-on: ${{ matrix.os }}
     needs: update-linux-cache
     strategy:
