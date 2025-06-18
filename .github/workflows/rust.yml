@@ -23,7 +23,7 @@ on:
   pull_request:
 
 jobs:
-  update-linux-cache:
+  test-windows:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
