@@ -24,7 +24,7 @@ on:
 
 jobs:
   # build dependencies cache for later jobs
-  test-linux:
+  update-linux-cache:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -66,5 +66,48 @@ jobs:
       - name: Test 
         shell: bash
         run: |
-          cargo check
+          cargo check --all-features
+
+  test-linux:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        arch: [amd64]
+    container:
+      image: ${{ matrix.arch }}/rust
+      env:
+        # Disable full debug symbol generation to speed up CI build and keep memory down
+        # "1" means line tables only, which is useful for panic tracebacks.
+        RUSTFLAGS: "-C debuginfo=1"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache Rust toolchain
+        id: cache-rustup
+        uses: actions/cache@v4
+        if: ${{ matrix.os != 'windows' }}
+        with:
+          path: ~/.rustup
+          key: toolchain-${{ matrix.os }}-${{ matrix.arch }}-${{ hashFiles('rust-toolchain.toml') }}
+      - name: Install Rust toolchain
+        if: ${{ steps.cache-rustup.outputs.cache-hit != 'true' }}
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache: false
+      - name: Set channel in rust-toolchain.toml as default
+        shell: bash
+        run: |
+          rustup default $(grep -m1 '^channel' rust-toolchain.toml | cut -d'"' -f2)
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ inputs.github-token }}
+      - name: Set up cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          save-if: "false"
+          shared-key: "main"
+      - name: Test 
+        shell: bash
+        run: |
           cargo test
