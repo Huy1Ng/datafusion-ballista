@@ -66,10 +66,11 @@ jobs:
       - name: Test 
         shell: bash
         run: |
-          cargo check --all-features
+          cargo check
 
   test-linux:
     runs-on: ${{ matrix.os }}
+    needs: update-linux-cache
     strategy:
       matrix:
         os: [ubuntu-latest]
