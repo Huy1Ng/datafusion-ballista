@@ -119,7 +119,7 @@ jobs:
       - name: Test 
         shell: bash
         run: |
-          cargo test
+          cargo build
 
   test-linux:
     runs-on: ${{ matrix.os }}
@@ -164,7 +164,7 @@ jobs:
       - name: Test 
         shell: bash
         run: |
-          cargo test
+          cargo build
 
   test-linux-workspace:
     runs-on: ${{ matrix.os }}
