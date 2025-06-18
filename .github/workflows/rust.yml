@@ -66,7 +66,7 @@ jobs:
       - name: Test 
         shell: bash
         run: |
-          cargo check
+          cargo check --features standalone --features=testcontainers
 
   test-linux:
     runs-on: ${{ matrix.os }}
