@@ -63,10 +63,14 @@ jobs:
         with:
           save-if: "true"
           shared-key: "main"
+      - name: Check 
+        shell: bash
+        run: |
+          cargo check
       - name: Test 
         shell: bash
         run: |
-          cargo check --features standalone --features=testcontainers
+          cargo test
 
   test-linux:
     runs-on: ${{ matrix.os }}
