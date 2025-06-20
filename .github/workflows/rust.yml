@@ -23,55 +23,6 @@ on:
   pull_request:
 
 jobs:
-  # build the library, a compilation step used by multiple steps below
-  linux-build-lib:
-    name: Build Libraries on AMD64 Rust ${{ matrix.rust }}
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        arch: [amd64]
-        rust: [stable]
-    container:
-      image: ${{ matrix.arch }}/rust
-      env:
-        # Disable full debug symbol generation to speed up CI build and keep memory down
-        # "1" means line tables only, which is useful for panic tracebacks.
-        RUSTFLAGS: "-C debuginfo=1"
-    steps:
-      - uses: actions/checkout@v4
-      - name: Cache Cargo
-        uses: actions/cache@v4
-        with:
-          # these represent dependencies downloaded by cargo
-          # and thus do not depend on the OS, arch nor rust version.
-          path: /github/home/.cargo
-          key: cargo-cache-
-      - name: Cache Rust dependencies
-        uses: actions/cache@v4
-        with:
-          # these represent compiled steps of both dependencies and arrow
-          # and thus are specific for a particular OS, arch and rust version.
-          path: /github/home/target
-          key: ${{ runner.os }}-${{ matrix.arch }}-target-cache-${{ matrix.rust }}-
-      - name: Setup Rust toolchain
-        uses: ./.github/actions/setup-builder
-        with:
-          rust-version: ${{ matrix.rust }}
-      - name: Build workspace in release mode
-        run: |
-          cargo build --release
-          ls -l /github/home/target/release
-        env:
-          CARGO_HOME: "/github/home/.cargo"
-          CARGO_TARGET_DIR: "/github/home/target"
-      - name: Save artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: rust-artifacts
-          path: |
-            /github/home/target/release/ballista-scheduler
-            /github/home/target/release/ballista-executor
-
   # test the crate
   linux-test:
     name: Test Workspace on AMD64 Rust ${{ matrix.rust }}
