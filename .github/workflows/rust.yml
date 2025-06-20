@@ -243,6 +243,8 @@ jobs:
         uses: ./.github/actions/setup-builder
         with:
           rust-version: ${{ matrix.rust }}
+      - name: Set up cache
+        uses: Swatinem/rust-cache@v2
       - name: Verify that benchmark queries return expected results
         run: |
           cargo test --package ballista-benchmarks --profile release-nonlto --features=ci -- --test-threads=1
