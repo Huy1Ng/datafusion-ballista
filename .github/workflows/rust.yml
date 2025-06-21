@@ -39,8 +39,6 @@ jobs:
         uses: ./.github/actions/setup-linux-builder
         with:
           rust-version: stable
-      - name: Set up cache
-        uses: Swatinem/rust-cache@v2
       - name: Prepare cargo build
         run: |
           # Adding `--locked` here to assert that the `Cargo.lock` file is up to
@@ -60,8 +58,6 @@ jobs:
         uses: ./.github/actions/setup-linux-builder
         with:
           rust-version: ${{ matrix.rust }}
-      - name: Set up cache
-        uses: Swatinem/rust-cache@v2
       - name: Run tests
         run: |
           export PATH=$PATH:$HOME/d/protoc/bin
@@ -90,8 +86,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Setup Rust toolchain
         uses: ./.github/actions/setup-linux-builder
-      - name: Set up cache
-        uses: Swatinem/rust-cache@v2
       - name: Run Ballista tests
         run: |
           export PATH=$PATH:$HOME/d/protoc/bin
@@ -111,8 +105,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Setup Rust toolchain
         uses: ./.github/actions/setup-windows-builder
-      - name: Set up cache
-        uses: Swatinem/rust-cache@v2
       - name: Run tests
         shell: bash
         run: |
@@ -132,8 +124,6 @@ jobs:
           submodules: true
       - name: Setup Rust toolchain
         uses: ./.github/actions/setup-macos-builder
-      - name: Set up cache
-        uses: Swatinem/rust-cache@v2
       - name: Run tests
         shell: bash
         run: |
@@ -154,11 +144,9 @@ jobs:
           submodules: true
       - name: Setup Rust toolchain
         uses: ./.github/actions/setup-linux-builder
-      - name: Set up cache
-        uses: Swatinem/rust-cache@v2
       - name: Verify that benchmark queries return expected results
         run: |
-          cargo test --package ballista-benchmarks --profile release-nonlto --features=ci -- --test-threads=1 --locked
+          cargo test --package ballista-benchmarks --profile release-nonlto --features=ci --locked -- --test-threads=1 
 
   lint:
     name: Lint
