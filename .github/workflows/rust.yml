@@ -60,7 +60,6 @@ jobs:
       image: amd64/rust
     steps:
       - uses: actions/checkout@v4
-        with:
       - name: Setup Rust toolchain
         uses: ./.github/actions/setup-linux-builder
         with:
