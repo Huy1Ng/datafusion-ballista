@@ -47,7 +47,6 @@ jobs:
           # date with the manifest. When this fails, please make sure to commit
           # the changes to `Cargo.lock` after building with the updated manifest.
           cargo check --profile ci --workspace --all-targets --locked
-          cargo test --profile ci --workspace --all-targets --locked --no-run
 
   # test the crate
   linux-test:
