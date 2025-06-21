@@ -26,7 +26,15 @@ runs:
   using: "composite"
   steps:
     - name: Install protobuf compiler
-      uses: arduino/setup-protoc@v3
+      shell: bash
+      run: |
+        mkdir -p $HOME/d/protoc
+        cd $HOME/d/protoc
+        export PROTO_ZIP="protoc-29.1-win64.zip"
+        curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v29.1/$PROTO_ZIP
+        unzip $PROTO_ZIP
+        export PATH=$PATH:$HOME/d/protoc/bin
+        protoc.exe --version
     - name: Setup Rust toolchain
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:

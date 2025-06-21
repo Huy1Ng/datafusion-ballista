@@ -41,9 +41,6 @@ jobs:
           rust-version: stable
       - name: Set up cache
         uses: Swatinem/rust-cache@v2
-        with:
-          save-if: "true"
-          shared-key: "main"
       - name: Prepare cargo build
         run: |
           # Adding `--locked` here to assert that the `Cargo.lock` file is up to
@@ -67,9 +64,6 @@ jobs:
           rust-version: ${{ matrix.rust }}
       - name: Set up cache
         uses: Swatinem/rust-cache@v2
-        with:
-          save-if: "false"
-          shared-key: "main"
       - name: Run tests
         run: |
           export PATH=$PATH:$HOME/d/protoc/bin
@@ -89,7 +83,6 @@ jobs:
           CARGO_HOME: "/github/home/.cargo"
           CARGO_TARGET_DIR: "/github/home/target"
 
-  # run ballista tests
   ballista-test:
     name: test linux balista
     needs: ["linux-build-lib"]
@@ -102,9 +95,6 @@ jobs:
         uses: ./.github/actions/setup-linux-builder
       - name: Set up cache
         uses: Swatinem/rust-cache@v2
-        with:
-          save-if: "false"
-          shared-key: "main"
       - name: Run Ballista tests
         run: |
           export PATH=$PATH:$HOME/d/protoc/bin
@@ -126,8 +116,6 @@ jobs:
         uses: ./.github/actions/setup-windows-builder
       - name: Set up cache
         uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: "main"
       - name: Run tests
         shell: bash
         run: |
@@ -149,15 +137,12 @@ jobs:
         uses: ./.github/actions/setup-macos-builder
       - name: Set up cache
         uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: "main"
       - name: Run tests
         shell: bash
         run: |
           export PATH=$PATH:$HOME/d/protoc/bin
           export ARROW_TEST_DATA=$(pwd)/testing/data
           export PARQUET_TEST_DATA=$(pwd)/parquet-testing/data
-          mkdir -p "$TMP"
           cargo test
 
   # verify that the benchmark queries return the correct results
@@ -175,9 +160,6 @@ jobs:
         uses: ./.github/actions/setup-linux-builder
       - name: Set up cache
         uses: Swatinem/rust-cache@v2
-        with:
-          save-if: "false"
-          shared-key: "main"
       - name: Verify that benchmark queries return expected results
         run: |
           cargo test --package ballista-benchmarks --profile release-nonlto --features=ci -- --test-threads=1
@@ -203,24 +185,14 @@ jobs:
   clippy:
     name: Clippy
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        arch: [amd64]
-        rust: [stable]
     container:
-      image: ${{ matrix.arch }}/rust
-      env:
-        # Disable full debug symbol generation to speed up CI build and keep memory down
-        # "1" means line tables only, which is useful for panic tracebacks.
-        RUSTFLAGS: "-C debuginfo=1"
+      image: amd64/rust
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: true
       - name: Setup Rust toolchain
-        uses: ./.github/actions/setup-builder
-        with:
-          rust-version: ${{ matrix.rust }}
+        uses: ./.github/actions/setup-linux-builder
       - name: Install Clippy
         run: |
           rustup component add clippy
@@ -233,24 +205,14 @@ jobs:
   cargo-toml-formatting-checks:
     name: Check Cargo.toml formatting
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        arch: [amd64]
-        rust: [stable]
     container:
-      image: ${{ matrix.arch }}/rust
-      env:
-        # Disable full debug symbol generation to speed up CI build and keep memory down
-        # "1" means line tables only, which is useful for panic tracebacks.
-        RUSTFLAGS: "-C debuginfo=1"
+      image: amd64/rust
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: true
       - name: Setup Rust toolchain
-        uses: ./.github/actions/setup-builder
-        with:
-          rust-version: ${{ matrix.rust }}
+        uses: ./.github/actions/setup-linux-builder
       - name: Install cargo-tomlfmt
         run: |
           which cargo-tomlfmt || cargo install cargo-tomlfmt
