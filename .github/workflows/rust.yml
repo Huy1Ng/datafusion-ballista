@@ -50,6 +50,7 @@ jobs:
           # date with the manifest. When this fails, please make sure to commit
           # the changes to `Cargo.lock` after building with the updated manifest.
           cargo check --profile ci --workspace --all-targets --locked
+          cargo test --profile ci --workspace --all-targets --locked --no-run
 
   # test the crate
   linux-test:
@@ -165,7 +166,7 @@ jobs:
     needs: ["linux-build-lib"]
     runs-on: ubuntu-latest
     container:
-      image: ${{ matrix.arch }}/rust
+      image: amd64/rust
     steps:
       - uses: actions/checkout@v4
         with:
