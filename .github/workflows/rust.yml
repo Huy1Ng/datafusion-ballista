@@ -161,7 +161,7 @@ jobs:
         uses: ./.github/actions/setup-builder
       - name: Verify that benchmark queries return expected results
         run: |
-          cargo test --profile ci --package ballista-benchmarks --features=ci --locked -- --test-threads=1 
+          cargo test --package ballista-benchmarks --features=ci --locked -- --test-threads=1 
 
   lint:
     name: Lint

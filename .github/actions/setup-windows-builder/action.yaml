@@ -39,5 +39,6 @@ runs:
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
         components: rustfmt
+        cache: false
     - name: Configure rust runtime env
       uses: ./.github/actions/setup-rust-runtime        
