@@ -97,9 +97,6 @@ jobs:
           version: "27.4"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Cargo build
-        run: cd python && cargo build
-
       - name: Build Python package
         run: cd python && maturin build --release --strip
 
@@ -157,8 +154,6 @@ jobs:
         with:
           version: "27.4"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Cargo build
-        run: cd python && cargo build
       - name: Build Python package
         run: cd python && maturin build --release --strip
       - name: List Mac wheels
@@ -196,8 +191,6 @@ jobs:
 
       - name: Install maturin
         run: pip install maturin==1.5.1
-      - name: Cargo Build
-        run: cd python && cargo build
 
       - name: Build Python package
         run: cd python && maturin build --release --strip
@@ -232,8 +225,6 @@ jobs:
 
       - name: Install maturin
         run: pip install maturin==1.5.1
-      - name: Cargo Build
-        run: cd python && cargo build
 
       - name: Build Python package
         run: cd python && maturin build --release --strip
@@ -268,8 +259,6 @@ jobs:
 
       - name: Install maturin
         run: pip install maturin==1.5.1
-      - name: Cargo Build
-        run: cd python && cargo build
       - name: Build Python package
         run: cd python && maturin build --release --sdist --out dist --strip
 
