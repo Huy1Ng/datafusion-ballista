@@ -23,10 +23,7 @@ concurrency:
 
 on:
   pull_request:
-    branches: ["main"]
   push:
-    tags: ["*-rc*"]
-    branches: ["branch-*"]
 
 jobs:
   build:
@@ -87,7 +84,7 @@ jobs:
         run: python -m pip install --upgrade pip
 
       - name: Install maturin
-        run: pip install maturin==1.5.1
+        run: pip install maturin==1.9.1
 
       - run: rm LICENSE.txt
       - name: Download LICENSE.txt
@@ -101,9 +98,6 @@ jobs:
         with:
           version: "27.4"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Cargo build
-        run: cd python && cargo build
 
       - name: Build Python package
         run: cd python && maturin build --release --strip
@@ -148,7 +142,7 @@ jobs:
         run: python -m pip install --upgrade pip
 
       - name: Install maturin
-        run: pip install maturin==1.5.1
+        run: pip install maturin==1.9.1
 
       - run: rm LICENSE.txt
       - name: Download LICENSE.txt
@@ -162,8 +156,6 @@ jobs:
         with:
           version: "27.4"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Cargo build
-        run: cd python && cargo build
       - name: Build Python package
         run: cd python && maturin build --release --strip
       - name: List Mac wheels
@@ -200,9 +192,7 @@ jobs:
         run: python -m pip install --upgrade pip
 
       - name: Install maturin
-        run: pip install maturin==1.5.1
-      - name: Cargo Build
-        run: cd python && cargo build
+        run: pip install maturin==1.9.1
 
       - name: Build Python package
         run: cd python && maturin build --release --strip
@@ -236,9 +226,7 @@ jobs:
         run: python -m pip install --upgrade pip
 
       - name: Install maturin
-        run: pip install maturin==1.5.1
-      - name: Cargo Build
-        run: cd python && cargo build
+        run: pip install maturin==1.9.1
 
       - name: Build Python package
         run: cd python && maturin build --release --strip
@@ -272,9 +260,7 @@ jobs:
         run: python -m pip install --upgrade pip
 
       - name: Install maturin
-        run: pip install maturin==1.5.1
-      - name: Cargo Build
-        run: cd python && cargo build
+        run: pip install maturin==1.9.1
       - name: Build Python package
         run: cd python && maturin build --release --sdist --out dist --strip
 
