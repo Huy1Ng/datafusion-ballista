@@ -44,8 +44,7 @@ classifiers = [
 ]
 dependencies = [
     "pyarrow>=21.0.0",
-    "cloudpickle",
-    "datafusion>=48.0.0",
+    "cloudpickle"
 ]
 dynamic = ["version"]
 
