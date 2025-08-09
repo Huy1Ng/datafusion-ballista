@@ -38,7 +38,7 @@ jobs:
       # but do not yet build the rust library
       - name: Install dependencies
         run: |
-          cd python && uv sync --dev --no-install-package balista
+          cd python && uv sync --dev --no-install-package ballista
 
       # Update output format to enable automatic inline annotations.
       - name: Run Ruff
@@ -99,7 +99,7 @@ jobs:
 
       - name: Build Python package
         run: |
-          cd python && uv sync --dev --no-install-package balista && uv run --no-project maturin build --release --strip
+          cd python && uv sync --dev --no-install-package ballista && uv run --no-project maturin build --release --strip
 
       - name: List Windows wheels
         run: dir python\target\wheels\
@@ -153,7 +153,7 @@ jobs:
 
       - name: Build Python package
         run: |
-          cd python && uv sync --dev --no-install-package balista && uv run --no-project maturin build --release --strip
+          cd python && uv sync --dev --no-install-package ballista && uv run --no-project maturin build --release --strip
 
       - name: List Mac wheels
         run: find target/wheels/
