@@ -198,7 +198,9 @@ impl CustomObjectStoreRegistry {
         if let Some(endpoint) = endpoint {
             if let Ok(endpoint_url) = Url::try_from(endpoint.as_str()) {
                 if !matches!(allow_http, Some(true)) && endpoint_url.scheme() == "http" {
-                    return config_err!("Invalid endpoint: {endpoint}. HTTP is not allowed for S3 endpoints. To allow HTTP, set 's3.allow_http' to true");
+                    return config_err!(
+                        "Invalid endpoint: {endpoint}. HTTP is not allowed for S3 endpoints. To allow HTTP, set 's3.allow_http' to true"
+                    );
                 }
             }
 
