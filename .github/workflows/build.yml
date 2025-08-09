@@ -37,13 +37,14 @@ jobs:
       # Use the --no-install-package to only install the dependencies
       # but do not yet build the rust library
       - name: Install dependencies
-        run: uv sync --dev --no-install-package datafusion
+        run: |
+          cd python && uv sync --dev --no-install-package balista
 
       # Update output format to enable automatic inline annotations.
       - name: Run Ruff
         run: |
-          uv run --no-project ruff check --output-format=github python/
-          uv run --no-project ruff format --check python/
+          cd python && uv run --no-project ruff check --output-format=github python/
+          cd python && uv run --no-project ruff format --check python/
 
   generate-license:
     runs-on: ubuntu-latest
@@ -54,7 +55,8 @@ jobs:
             enable-cache: true
 
       - name: Generate license file
-        run: uv run --no-project python ./dev/create_license.py
+        run: |
+          cd python && uv run --no-project python ./dev/create_license.py
       - uses: actions/upload-artifact@v4
         with:
           name: python-wheel-license
@@ -97,7 +99,7 @@ jobs:
 
       - name: Build Python package
         run: |
-          cd python && uv sync --dev --no-install-package datafusion
+          cd python && uv sync --dev --no-install-package balista
           cd python && uv run --no-project maturin build --release --strip
 
       - name: List Windows wheels
@@ -152,7 +154,7 @@ jobs:
 
       - name: Build Python package
         run: |
-          cd python && uv sync --dev --no-install-package datafusion
+          cd python && uv sync --dev --no-install-package balista
           cd python && uv run --no-project maturin build --release --strip
 
       - name: List Mac wheels
