@@ -192,13 +192,12 @@ impl<T: 'static + AsLogicalPlan, U: 'static + AsExecutionPlan> SchedulerState<T,
                     if_revive = true;
                 }
             }
-            if if_revive {
-                if let Err(e) = sender
+            if if_revive
+                && let Err(e) = sender
                     .post_event(QueryStageSchedulerEvent::ReviveOffers)
                     .await
-                {
-                    error!("Fail to send revive offers event due to {e:?}");
-                }
+            {
+                error!("Fail to send revive offers event due to {e:?}");
             }
         });
 
@@ -224,12 +223,11 @@ impl<T: 'static + AsLogicalPlan, U: 'static + AsExecutionPlan> SchedulerState<T,
 
         match self.task_manager.executor_lost(executor_id).await {
             Ok(tasks) => {
-                if !tasks.is_empty() {
-                    if let Err(e) =
+                if !tasks.is_empty()
+                    && let Err(e) =
                         self.executor_manager.cancel_running_tasks(tasks).await
-                    {
-                        warn!("Fail to cancel running tasks due to {e:?}");
-                    }
+                {
+                    warn!("Fail to cancel running tasks due to {e:?}");
                 }
             }
             Err(e) => {

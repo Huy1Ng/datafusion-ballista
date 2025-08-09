@@ -70,10 +70,10 @@ impl InMemoryClusterState {
     ) -> HashMap<String, TopologyNode> {
         let mut nodes: HashMap<String, TopologyNode> = HashMap::new();
         for (executor_id, slots) in guard.iter() {
-            if let Some(executors) = executors.as_ref() {
-                if !executors.contains(executor_id) {
-                    continue;
-                }
+            if let Some(executors) = executors.as_ref()
+                && !executors.contains(executor_id)
+            {
+                continue;
             }
             if let Some(executor) = self.executors.get(&slots.executor_id) {
                 let node = TopologyNode::new(

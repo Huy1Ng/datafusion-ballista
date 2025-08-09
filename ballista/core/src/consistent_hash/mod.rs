@@ -153,10 +153,10 @@ where
             .range(hashed_key..)
             .chain(self.virtual_nodes.iter())
         {
-            if let Some((node, _)) = self.node_replicas.get(node_name) {
-                if node.is_valid() {
-                    return Some(position_key.clone());
-                }
+            if let Some((node, _)) = self.node_replicas.get(node_name)
+                && node.is_valid()
+            {
+                return Some(position_key.clone());
             }
             if tolerance == 0 {
                 return None;

@@ -510,66 +510,58 @@ impl ExecutionGraph {
                         // handle delayed failed tasks if the stage's next attempt is still in UnResolved status.
                         if let Some(task_status::Status::Failed(failed_task)) =
                             task_status.status
-                        {
-                            if unsolved_stage.stage_attempt_num - task_stage_attempt_num
+                            && unsolved_stage.stage_attempt_num - task_stage_attempt_num
                                 == 1
-                            {
-                                let failed_reason = failed_task.failed_reason;
-                                match failed_reason {
-                                    Some(FailedReason::ExecutionError(_)) => {
-                                        should_ignore = false;
-                                        failed_stages.insert(stage_id, failed_task.error);
-                                    }
-                                    Some(FailedReason::FetchPartitionError(
-                                        fetch_partiton_error,
-                                    )) if failed_stages.is_empty()
-                                        && current_running_stages.contains(
-                                            &(fetch_partiton_error.map_stage_id as usize),
-                                        )
-                                        && !unsolved_stage
-                                            .last_attempt_failure_reasons
-                                            .contains(
-                                                &fetch_partiton_error.executor_id,
-                                            ) =>
-                                    {
-                                        should_ignore = false;
-                                        unsolved_stage
-                                            .last_attempt_failure_reasons
-                                            .insert(
-                                                fetch_partiton_error.executor_id.clone(),
-                                            );
-                                        let map_stage_id =
-                                            fetch_partiton_error.map_stage_id as usize;
-                                        let map_partition_id = fetch_partiton_error
-                                            .map_partition_id
-                                            as usize;
-                                        let executor_id =
-                                            fetch_partiton_error.executor_id;
-                                        let removed_map_partitions = unsolved_stage
-                                            .remove_input_partitions(
-                                                map_stage_id,
-                                                map_partition_id,
-                                                &executor_id,
-                                            )?;
-
-                                        let missing_inputs = reset_running_stages
-                                            .entry(map_stage_id)
-                                            .or_default();
-                                        missing_inputs.extend(removed_map_partitions);
-                                        warn!(
-                                            "Need to reset the current running Stage {map_stage_id} due to late come FetchPartitionError from its parent stage {stage_id} of task {task_identity}"
-                                        );
-
-                                        // If the previous other task updates had already mark the map stage success, need to remove it.
-                                        if successful_stages.contains(&map_stage_id) {
-                                            successful_stages.remove(&map_stage_id);
-                                        }
-                                        if resolved_stages.contains(&stage_id) {
-                                            resolved_stages.remove(&stage_id);
-                                        }
-                                    }
-                                    _ => {}
+                        {
+                            let failed_reason = failed_task.failed_reason;
+                            match failed_reason {
+                                Some(FailedReason::ExecutionError(_)) => {
+                                    should_ignore = false;
+                                    failed_stages.insert(stage_id, failed_task.error);
                                 }
+                                Some(FailedReason::FetchPartitionError(
+                                    fetch_partiton_error,
+                                )) if failed_stages.is_empty()
+                                    && current_running_stages.contains(
+                                        &(fetch_partiton_error.map_stage_id as usize),
+                                    )
+                                    && !unsolved_stage
+                                        .last_attempt_failure_reasons
+                                        .contains(&fetch_partiton_error.executor_id) =>
+                                {
+                                    should_ignore = false;
+                                    unsolved_stage
+                                        .last_attempt_failure_reasons
+                                        .insert(fetch_partiton_error.executor_id.clone());
+                                    let map_stage_id =
+                                        fetch_partiton_error.map_stage_id as usize;
+                                    let map_partition_id =
+                                        fetch_partiton_error.map_partition_id as usize;
+                                    let executor_id = fetch_partiton_error.executor_id;
+                                    let removed_map_partitions = unsolved_stage
+                                        .remove_input_partitions(
+                                            map_stage_id,
+                                            map_partition_id,
+                                            &executor_id,
+                                        )?;
+
+                                    let missing_inputs = reset_running_stages
+                                        .entry(map_stage_id)
+                                        .or_default();
+                                    missing_inputs.extend(removed_map_partitions);
+                                    warn!(
+                                        "Need to reset the current running Stage {map_stage_id} due to late come FetchPartitionError from its parent stage {stage_id} of task {task_identity}"
+                                    );
+
+                                    // If the previous other task updates had already mark the map stage success, need to remove it.
+                                    if successful_stages.contains(&map_stage_id) {
+                                        successful_stages.remove(&map_stage_id);
+                                    }
+                                    if resolved_stages.contains(&stage_id) {
+                                        resolved_stages.remove(&stage_id);
+                                    }
+                                }
+                                _ => {}
                             }
                         }
                         if should_ignore {

@@ -258,21 +258,17 @@ impl Into<ExecutorData> for protobuf::ExecutorData {
             available_task_slots: 0,
         };
         for resource in self.resources {
-            if let Some(task_slots) = resource.total {
-                if let Some(protobuf::executor_resource::Resource::TaskSlots(
-                    task_slots,
-                )) = task_slots.resource
-                {
-                    ret.total_task_slots = task_slots
-                }
+            if let Some(task_slots) = resource.total
+                && let Some(protobuf::executor_resource::Resource::TaskSlots(task_slots)) =
+                    task_slots.resource
+            {
+                ret.total_task_slots = task_slots
             };
-            if let Some(task_slots) = resource.available {
-                if let Some(protobuf::executor_resource::Resource::TaskSlots(
-                    task_slots,
-                )) = task_slots.resource
-                {
-                    ret.available_task_slots = task_slots
-                }
+            if let Some(task_slots) = resource.available
+                && let Some(protobuf::executor_resource::Resource::TaskSlots(task_slots)) =
+                    task_slots.resource
+            {
+                ret.available_task_slots = task_slots
             };
         }
         ret
