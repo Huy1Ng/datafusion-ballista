@@ -34,6 +34,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Instant;
 
+use crate::extension::SessionConfigExt;
 use crate::utils;
 
 use crate::serde::protobuf::ShuffleWritePartition;
@@ -205,6 +206,10 @@ impl ShuffleWriterExec {
         let output_partitioning = self.shuffle_output_partitioning.clone();
         let plan = self.plan.clone();
 
+        let max_grpc_message_size = context
+            .session_config()
+            .ballista_grpc_client_max_message_size();
+
         async move {
             let now = Instant::now();
             let mut stream = plan.execute(input_partition, context)?;
@@ -223,6 +228,7 @@ impl ShuffleWriterExec {
                         &mut stream,
                         path,
                         &write_metrics.write_time,
+                        max_grpc_message_size,
                     )
                     .await
                     .map_err(|e| DataFusionError::Execution(format!("{e:?}")))?;
@@ -263,7 +269,6 @@ impl ShuffleWriterExec {
                         Partitioning::Hash(exprs, num_output_partitions),
                         write_metrics.repart_time.clone(),
                     )?;
-
                     while let Some(result) = stream.next().await {
                         let input_batch = result?;
 
@@ -272,6 +277,11 @@ impl ShuffleWriterExec {
                         partitioner.partition(
                             input_batch,
                             |output_partition, output_batch| {
+                                let output_batch = utils::maybe_gc_batch(
+                                    output_batch,
+                                    max_grpc_message_size,
+                                )
+                                .map_err(|e| DataFusionError::External(Box::new(e)))?;
                                 // partition func in datafusion make sure not write empty output_batch.
                                 let timer = write_metrics.write_time.timer();
                                 match &mut writers[output_partition] {
