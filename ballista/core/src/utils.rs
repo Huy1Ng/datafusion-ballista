@@ -20,10 +20,14 @@ use crate::error::{BallistaError, Result};
 use crate::extension::SessionConfigExt;
 use crate::serde::scheduler::PartitionStats;
 
+use datafusion::arrow::array::ArrayRef;
+use datafusion::arrow::array::cast::AsArray;
+use datafusion::arrow::datatypes::DataType;
 use datafusion::arrow::ipc::CompressionType;
 use datafusion::arrow::ipc::writer::IpcWriteOptions;
 use datafusion::arrow::ipc::writer::StreamWriter;
 use datafusion::arrow::record_batch::RecordBatch;
+use datafusion::common::DataFusionError;
 use datafusion::execution::context::{SessionConfig, SessionState};
 use datafusion::execution::runtime_env::RuntimeEnvBuilder;
 use datafusion::execution::session_state::SessionStateBuilder;
@@ -148,6 +152,7 @@ pub async fn write_stream_to_disk(
     stream: &mut Pin<Box<dyn RecordBatchStream + Send>>,
     path: &str,
     disk_write_metric: &metrics::Time,
+    max_grpc_message_size: usize,
 ) -> Result<PartitionStats> {
     let file = BufWriter::new(File::create(path).map_err(|e| {
         error!("Failed to create partition file at {path}: {e:?}");
@@ -166,14 +171,14 @@ pub async fn write_stream_to_disk(
 
     while let Some(result) = stream.next().await {
         let batch = result?;
-
-        let batch_size_bytes: usize = batch.get_array_memory_size();
+        let compacted_batch = maybe_gc_batch(batch, max_grpc_message_size)?;
+        let batch_size_bytes: usize = compacted_batch.get_array_memory_size();
         num_batches += 1;
-        num_rows += batch.num_rows();
+        num_rows += compacted_batch.num_rows();
         num_bytes += batch_size_bytes;
 
         let timer = disk_write_metric.timer();
-        writer.write(&batch)?;
+        writer.write(&compacted_batch)?;
         timer.done();
     }
     let timer = disk_write_metric.timer();
@@ -290,9 +295,63 @@ pub fn get_time_before(interval_seconds: u64) -> u64 {
         .as_secs()
 }
 
+/// Compacts View arrays ONLY IF the total batch size exceeds the gRPC limit.
+pub fn maybe_gc_batch(
+    batch: RecordBatch,
+    max_grpc_message_size: usize,
+) -> Result<RecordBatch> {
+    // 1. Check Total Physical Size
+    // get_array_memory_size() returns the size of the underlying buffers.
+    // For BinaryView, this includes the full size of the referenced buffers.
+    let total_size: usize = batch
+        .columns()
+        .iter()
+        .map(|c| c.get_array_memory_size())
+        .sum();
+    // 2. Fast Path: If we are within limits, do nothing.
+    if total_size <= max_grpc_message_size {
+        return Ok(batch.clone());
+    }
+
+    // 3. Slow Path: We are exceeding the limit. Try to compact View columns.
+    let mut new_columns: Vec<ArrayRef> = Vec::with_capacity(batch.num_columns());
+    let mut changed = false;
+
+    for col in batch.columns() {
+        let new_col = match col.data_type() {
+            DataType::Utf8View => {
+                let arr = col.as_string_view();
+                // We blindly compact if we are over the limit, assuming the View
+                // is the cause of the bloat. We could add a ratio check here too,
+                // but if we are over the limit, we MUST try to reduce size.
+                changed = true;
+                Arc::new(arr.gc()) as ArrayRef
+            }
+            DataType::BinaryView => {
+                let arr = col.as_binary_view();
+                changed = true;
+                Arc::new(arr.gc()) as ArrayRef
+            }
+            _ => col.clone(),
+        };
+        new_columns.push(new_col);
+    }
+
+    if changed {
+        // Map the DataFusion/Arrow error to BallistaError
+        RecordBatch::try_new(batch.schema(), new_columns)
+            .map_err(DataFusionError::from)
+            .map_err(BallistaError::from)
+    } else {
+        Ok(batch.clone())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use datafusion::arrow::array::StringViewBuilder;
+    use datafusion::arrow::datatypes::{DataType, Field, Schema};
 
     #[test]
     fn test_grpc_client_config_from_ballista_config() {
@@ -334,5 +393,63 @@ mod tests {
     fn test_create_grpc_client_endpoint_invalid_url() {
         let result = create_grpc_client_endpoint("not a valid url", None);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_string_view_compaction() {
+        let mut builder = StringViewBuilder::with_capacity(100);
+
+        // 1. Append a string that is long enough to NOT be inlined (> 12 bytes),
+        // but small enough to show compaction works (e.g., 20 bytes).
+        let small_string = "a".repeat(20);
+        builder.append_value(&small_string);
+
+        // 2. Append a HUGE string (1MB) to bloat the buffer.
+        // Because they are built together, they share the same underlying buffer.
+        let big_string = "b".repeat(1024 * 1024);
+        builder.append_value(&big_string);
+
+        let array = builder.finish();
+
+        // 3. Slice the array to keep ONLY the first element (the small string).
+        // The array logically has only 20 bytes of data, but the underlying
+        // buffer is 1MB + 20 bytes.
+        let sliced_array = array.slice(0, 1);
+
+        // 4. Create a batch
+        let schema = Arc::new(Schema::new(vec![Field::new(
+            "a",
+            DataType::Utf8View,
+            false,
+        )]));
+        let batch =
+            RecordBatch::try_new(schema, vec![Arc::new(sliced_array) as ArrayRef])
+                .unwrap();
+
+        let initial_size: usize = batch
+            .columns()
+            .iter()
+            .map(|c| c.get_array_memory_size())
+            .sum();
+
+        // Confirm the buffer is huge (because of the hidden big_string)
+        assert!(initial_size >= 1024 * 1024);
+
+        // 5. Force compaction
+        // The limit (10KB) is smaller than the current size (1MB), so GC triggers.
+        let compacted_batch = maybe_gc_batch(batch, 10 * 1024).unwrap();
+
+        let compacted_size: usize = compacted_batch
+            .columns()
+            .iter()
+            .map(|c| c.get_array_memory_size())
+            .sum();
+
+        // 6. The compacted size should now be tiny.
+        assert!(compacted_size < 1024); // Should be very small (~100-200 bytes overhead)
+
+        // Verify data correctness
+        let res_col = compacted_batch.column(0).as_string_view();
+        assert_eq!(res_col.value(0), small_string);
     }
 }
